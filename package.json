@@ -1,10 +1,10 @@
 {
   "name": "dot-queue",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "Dot queue is a node js queue with support for multiprocessing. Dot queue forks workers smartly based on the current cpu usage.",
   "main": "index.js",
-  "scripts": {
-  },
+  "repository": "github:DarkSouL11/dot-queue",
+  "scripts": {},
   "keywords": [
     "queue",
     "javascript",

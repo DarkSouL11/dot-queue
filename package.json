@@ -15,8 +15,7 @@
   "author": "Sundeep Babbur",
   "license": "ISC",
   "dependencies": {
-    "fs-extra": "^5.0.0",
-    "lodash": "^4.17.5",
-    "robe": "^2.1.0"
+    "mongo-oplog": "^2.1.0",
+    "mongodb": "^3.0.6"
   }
 }

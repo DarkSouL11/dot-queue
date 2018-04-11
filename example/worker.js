@@ -1,4 +1,4 @@
-var DotQ = require('./utils/queue.js');
+var DotQ = require('../utils/queue.js');
 var config = require('./config.json');
 var child_process = require('child_process');
 

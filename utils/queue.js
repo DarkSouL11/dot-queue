@@ -70,9 +70,11 @@ var DotQ = {
         this.jobHandlers[jobName] = action;
         this.processJobs();
     },
-    addJob: function(jobName, data){
+    // Add job optional job priority feature
+    addJob: function(jobName, data, priority){
         if(this.definedJob) throw new Error('Cannot add and define job in same process.');
-
+        // Default priority is 5 assign higher priority for tasks to process them first or lower priority to process them late.
+        priority = priority || 5;
         return new Promise(async (resolve, reject) => {
             if(!this.queueCreated) return reject({error_message: 'Create a queue before adding any job!'});
             try{
@@ -80,7 +82,8 @@ var DotQ = {
                     name: jobName,
                     data,
                     queueAt: new Date().getTime(),
-                    status: 'queued'
+                    status: 'queued',
+                    priority
                 })
                 resolve();
             }catch(err){
@@ -117,8 +120,8 @@ var DotQ = {
             this.jobInProgress = false;
             this.processJobs();
         }
-
-        var jobToProcess = await this.jobCollection.findOne({status: 'queued'});
+        var jobToProcess = await this.jobCollection.find({status: 'queued'}, {sort: [['priority', -1]], limit: 1}).toArray();
+        jobToProcess = jobToProcess[0];
         if(jobToProcess && !this.jobInProgress){
             this.jobInProgress = true;
             var {name, data} = jobToProcess;

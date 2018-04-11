@@ -52,8 +52,8 @@ DotQ.defineJob('download_image', (job_data, done) => {
 **addJob**: Add a new job to the queue (asyncronous).  
 **Arguments**:  
 	*name*: (string) Job name used to identify the job to be performed.  
-	*data*: (object) Data to be passed to the job while processing.
-
+	*data*: (object) Data to be passed to the job while processing.   
+    *priority*: (int) Priority of the job. Optional, if nothing specified it will be 5. Higher priority jobs will be processed first.   
 ex:
 ```
 DotQ.addJob('download_image', {

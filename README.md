@@ -22,22 +22,22 @@ Initiate a queue.
 `DotQ.create([options], mongoConnectionStr)`
 
 #### Options
- **maxWorkers**: maximum number of workers master can fork.
-	 *data-type*: int
-	 *default*: Equal to number of cpu cores i.e `os.cpus().length`
+ **maxWorkers**: maximum number of workers master can fork.  
+	 *data-type*: int  
+	 *default*: Equal to number of cpu cores i.e `os.cpus().length`  
 
-**collection**: mongo db collection name for maintianing job queues data.
-	*data-type*: string
+**collection**: mongo db collection name for maintianing job queues data.  
+	*data-type*: string  
 	*default*: 'dot_queue'
 
-**maxCPUUsage**: Percentage cpu usage after which workers should be killed or not allowed to be forked.
-	*data-type*: int
+**maxCPUUsage**: Percentage cpu usage after which workers should be killed or not allowed to be forked.  
+	*data-type*: int  
 	*default*: 75
 
 #### Methods
-**defineJob**: Define a new job handler.
-**Arguments**:
-	*name*: (string) Name with which jobs in queue can identify the defined jobs.
+**defineJob**: Define a new job handler.  
+**Arguments**:  
+	*name*: (string) Name with which jobs in queue can identify the defined jobs.   
 	*action*: (function) Job handler function.
 
 ex:
@@ -49,9 +49,9 @@ DotQ.defineJob('download_image', (job_data, done) => {
 	done();
 })
 ```
-**addJob**: Add a new job to the queue (asyncronous).
-**Arguments**:
-	*name*: (string) Job name used to identify the job to be performed.
+**addJob**: Add a new job to the queue (asyncronous).  
+**Arguments**:  
+	*name*: (string) Job name used to identify the job to be performed.  
 	*data*: (object) Data to be passed to the job while processing.
 
 ex:

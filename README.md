@@ -2,20 +2,18 @@
 
 Dot queue is a node js queue with support for multiprocessing. Dot queue forks workers smartly based on the current cpu usage.
 
-### How to use
+### How to install
 ```
-1. Fork and clone the repo.
-2. npm i
-3. Start using.
+npm i dot-queue
 ```
 
 ### Documentation
 
-Make sure your mongo instance is a replica set. Refer [here](https://github.com/cayasso/mongo-oplog#configure-mongodb-with-replica-set "here") for creating a replica set.
+Make sure your mongo instance is a replica set. Refer [here](https://github.com/cayasso/mongo-oplog#configure-mongodb-with-replica-set "here") for creating a replica set. **This module will not work if replica set is not initiated**.  
 
 Import the queue.
 
-`const DotQ = require('./utils/queue.js');`
+`const DotQ = require('dot-queue');`
 
 Initiate a queue.
 

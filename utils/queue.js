@@ -1,4 +1,4 @@
-var {CPUMonitor} = require('./cpuMonit.js');
+var CPUMonitor = require('./cpuMonit');
 var cluster = require('cluster');
 var numCPUs = require('os').cpus().length;
 var MongoClient = require('mongodb').MongoClient;
@@ -14,18 +14,25 @@ var DotQ = {
     activeWorkers: [],
     addedJob: false,
     definedJob: false,
+    maxCPUUsage: 75,
     jobInProgress: false,
+    cpuMonitor: false,
     resetOptions: function(){
         this.maxWorkers = numCPUs;
         this.jobHandlers = {};
         this.collection = 'dot_queue';
+        this.maxCPUUsage = 75;
+        // Important to stop listeners and interval
+        if(this.cpuMonitor) CPUMonitor.stop();
+        this.cpuMonitor = false;
     },
     setOptions: function(o){
         this.maxWorkers = o.maxWorkers || this.maxWorkers;
-        this.collection = o.collection || this.collection
-        if(this.maxWorkers < 0 || this.maxWorkers > numCPUs){
+        this.collection = o.collection || this.collection;
+        this.maxCPUUsage = o.maxCPUUsage || this.maxCPUUsage;
+        if(this.maxWorkers < 0){
             this.resetOptions();
-            throw new Error(`Max workers should be between 1 and ${numCPUs}`);
+            throw new Error(`Max workers should not be less than 0`);
         }
     },
     connectDB: async function(str){
@@ -44,6 +51,10 @@ var DotQ = {
                 await this.connectDB(connectionStr);
                 this.queueCreated = true;
                 this.jobCollection = this.mongodbClient.collection(this.collection);
+                this.cpuMonitor = CPUMonitor.start({
+                    delay: 3000,
+                    alertValue: this.maxCPUUsage
+                })
                 await this.addDBHooks(connectionStr);
                 resolve();
             }catch(err){
@@ -77,11 +88,24 @@ var DotQ = {
             }
         })
     },
+    shouldProcessJob: function(){
+        /**
+         * @returns Boolean if true continue to process the job,
+         * if false and cluster is a master fork a cluster and for worker
+         * cluster kill the worker
+        **/
+        if(cluster.isMaster){
+            if(this.activeWorkers.length == this.maxWorkers || this.cpuMonitor.isCpuLimitReached()) return true;
+            return false;
+        }else{
+            if(this.cpuMonitor.isCpuLimitReached()) return false;
+            return true;
+        }
+    },
     addDBHooks: async function(str){
         let spliceStr = str.split('/');
         let ns = `${spliceStr.pop()}.${this.collection}`;
         let opStr = `${spliceStr.join('/')}/local`;
-        console.log(opStr, ns);
         const oplog = MongoOplog(opStr, { ns });
         await oplog.tail();
         oplog.on('insert', e => {
@@ -89,7 +113,7 @@ var DotQ = {
         })
     },
     processJobs: async function(){
-        function next(){
+        var next = () => {
             this.jobInProgress = false;
             this.processJobs();
         }
@@ -101,21 +125,36 @@ var DotQ = {
             if(!this.jobHandlers[name]){
                 return next();
             }
-            var shouldProcess = await this.jobCollection.updateOne({_id: ObjectId(jobToProcess._id), status: 'queued'}, {
-                $set: {status: 'inprogress', startedAt: new Date().getTime()}
-            })
-            if(shouldProcess.modifiedCount > 0){
-                try{
-                    this.jobHandlers[name](data, async () => {
-                        await this.jobCollection.deleteOne({_id: ObjectId(jobToProcess._id)});
+            if(this.shouldProcessJob()){
+                var shouldProcess = await this.jobCollection.updateOne({_id: ObjectId(jobToProcess._id), status: 'queued'}, {
+                    $set: {status: 'inprogress', startedAt: new Date().getTime()}
+                })
+                if(shouldProcess.modifiedCount > 0){
+                    try{
+                        this.jobHandlers[name](data, async () => {
+                            await this.jobCollection.deleteOne({_id: ObjectId(jobToProcess._id)});
+                            next();
+                        });
+                    }catch(err){
+                        await this.jobCollection.updateOne({_id: ObjectId(jobToProcess._id)}, {$set: { status: 'errored' }});
                         next();
-                    });
-                }catch(err){
-                    await this.jobCollection.updateOne({_id: ObjectId(jobToProcess._id), status: 'errored'});
+                    }
+                }else{
                     next();
                 }
             }else{
-                next();
+                if(cluster.isMaster){
+                    let worker = cluster.fork();
+                    this.activeWorkers.push(worker.id);
+                    worker.on('exit', (code, signal) => {
+                        console.log(`Worker with id: ${worker.id} exiting`);
+                        let i = this.activeWorkers.indexOf(worker.id);
+                        this.activeWorkers.splice(i, 1);
+                    })
+                    next();
+                }else{
+                    process.exit(0);
+                }
             }
         }
     }

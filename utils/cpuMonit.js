@@ -20,7 +20,6 @@ var CPUMonitor = {
         this.monitor = null;
         this.alertValue = 85;
         this.alertDisabled = false;
-        this.cpuLimitReached = false;
     },
     getCurrentUsage: function(){
         let cpuLt = 0, idleLt = 0, cpus = os.cpus();
@@ -62,11 +61,15 @@ var CPUMonitor = {
     start: function(options){
         if(this.isStarted) throw new Error('Cpu monitoring is already running!');
         if(options) this.setOptions(options);
+
         // Log start time
         this.startedAt = new Date().getTime();
+
         var cpuLimitReached = false
+
         // Create a event emitter to emit various monitor events;
         this.monitor = new EventEmitter();
+
         this.isStarted = setInterval(async () => {
             let cpuUsage = await this.getAverageUsage();
             this.monitor.emit('update', cpuUsage);
@@ -81,7 +84,7 @@ var CPUMonitor = {
         return {
             monitor: this.monitor,
             isCpuLimitReached: function(){
-                return limitReached;
+                return cpuLimitReached;
             }
         }
     },
@@ -97,6 +100,4 @@ var CPUMonitor = {
     }
 }
 
-module.exports = {
-    CPUMonitor
-}
+module.exports = CPUMonitor;
